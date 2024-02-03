@@ -1,7 +1,6 @@
 package com.lamsuite.authservice.model;
 
 import lombok.*;
-import org.springframework.data.relational.core.mapping.Column;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
