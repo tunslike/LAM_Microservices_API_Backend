@@ -10,7 +10,7 @@ import jakarta.validation.constraints.*;
 public class CustomerDto {
 
     @NotBlank(message = "The full name is required.")
-    private String fullname;
+    private String full_name;
 
     @NotBlank(message = "The phone number is required.")
     private String phoneNumber;
@@ -18,4 +18,7 @@ public class CustomerDto {
     @NotEmpty(message = "The email is required.")
     @Email(message = "The email is not a valid email.")
     private String emailAddress;
+
+    @NotEmpty(message = "The account type is required.")
+    private String account_type;
 }
