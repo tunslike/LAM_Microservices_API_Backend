@@ -3,9 +3,10 @@ package com.lamsuite.authservice.controller;
 import com.lamsuite.authservice.dto.EntryResponse;
 import com.lamsuite.authservice.dto.LoginResponse;
 import com.lamsuite.authservice.dto.Response;
-import com.lamsuite.authservice.dto.request.CustomerDto;
-import com.lamsuite.authservice.dto.request.CustomerRecordDto;
-import com.lamsuite.authservice.dto.request.SignInDto;
+import com.lamsuite.authservice.dto.request.*;
+import com.lamsuite.authservice.model.CustomerEmployerDetails;
+import com.lamsuite.authservice.model.EmployerLoanProfile;
+import com.lamsuite.authservice.model.EmployerProfile;
 import com.lamsuite.authservice.model.Entry;
 import com.lamsuite.authservice.services.CustomerEntryService;
 import jakarta.validation.Valid;
@@ -15,8 +16,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 import java.net.http.HttpResponse;
+import java.util.Objects;
+import java.util.UUID;
+
 import jakarta.validation.Valid;
+import org.springframework.web.multipart.MultipartFile;
 
 @CrossOrigin(origins="*")
 @RestController
@@ -47,22 +54,32 @@ public class EntryController {
         }
     }// end of create New customer
 
-    // update customer record
-    @PostMapping("/updateRecord")
-    public ResponseEntity updateCustomerRecord(@Valid @RequestBody CustomerRecordDto record) {
+    // service to return employer profiles
+    @GetMapping("/getEmployerProfiles")
+    public List<EmployerProfile> fetchEmployerProfile() {
+        return account.FetchEmployerProfiles();
+    }
+    // end of service
+
+
+    @PostMapping("/updatePersonalData")
+    public ResponseEntity updatePersonalData(@Valid @RequestBody PersonalDataUpdateDto personalRecord) {
 
         Entry customerEntry = new Entry();
-        LoginResponse responseEntry = new LoginResponse();
+        EntryResponse responseEntry = new EntryResponse();
 
-        boolean status = account.UpdateCustomerRecord(record);
+        String customerID = account.UpdatePersonalData(personalRecord);
 
-        if(status) {
+        if(!Objects.equals(customerID, "")) {
 
             Response response = new Response();
             response.setResponseCode(200);
             response.setResponseMessage("Customer record created successfully");
 
-            return new ResponseEntity(response, HttpStatus.OK);
+            responseEntry.setResponse(response);
+            responseEntry.setCUSTOMER_ENTRY_ID(UUID.fromString(customerID));
+
+            return new ResponseEntity(responseEntry, HttpStatus.OK);
         }
 
         return new ResponseEntity(responseEntry, HttpStatus.BAD_REQUEST);
@@ -70,14 +87,92 @@ public class EntryController {
     }
     // end of update customer record
 
+    @PostMapping("/updateEmployerData")
+    public ResponseEntity updateEmployerData(@Valid @RequestBody EmployerDataUpdateDto employerRecord) {
+
+        Entry customerEntry = new Entry();
+        EntryResponse responseEntry = new EntryResponse();
+
+        boolean createStatus = account.UpdateEmployerData(employerRecord);
+
+        if(createStatus) {
+
+            Response response = new Response();
+            response.setResponseCode(200);
+            response.setResponseMessage("Employer record created successfully");
+
+            responseEntry.setResponse(response);
+
+            return new ResponseEntity(responseEntry, HttpStatus.OK);
+        }
+
+        return new ResponseEntity(responseEntry, HttpStatus.BAD_REQUEST);
+
+    }
+    // end of update employer record
+
+    @PostMapping("/updateNOKData")
+    public ResponseEntity<EntryResponse> updateNOKData(@Valid @RequestBody NOKDataUpdateDto nokRecord) {
+
+        Entry customerEntry = new Entry();
+        EntryResponse responseEntry = new EntryResponse();
+
+        boolean createStatus = account.UpdateNOKData(nokRecord);
+
+        if(createStatus) {
+
+            Response response = new Response();
+            response.setResponseCode(200);
+            response.setResponseMessage("NOK record created successfully");
+
+            responseEntry.setResponse(response);
+
+            return new ResponseEntity(responseEntry, HttpStatus.OK);
+        }
+
+        return new ResponseEntity(responseEntry, HttpStatus.BAD_REQUEST);
+
+    }
+    // end of update nok record
+
+    // service to upload documents
+    @PostMapping("/uploadDocuments")
+    public ResponseEntity<String> uploadCustomerDocuments(@RequestParam("file") MultipartFile file) throws Exception {
+
+        if(account.UploadCustomerDocuments(file)) {
+
+            Response response = new Response();
+            response.setResponseCode(200);
+            response.setResponseMessage("Customer document uploaded successfully");
+
+            return new ResponseEntity(response, HttpStatus.OK);
+
+        }else {
+            Response response = new Response();
+            response.setResponseCode(404);
+            response.setResponseMessage("Unable to process your request");
+
+            return new ResponseEntity(response, HttpStatus.BAD_REQUEST);
+        }
+    }
+    // end of function
+
+    // service to login
     @PostMapping("/login")
     public ResponseEntity authenticateCustomer(@Valid @RequestBody SignInDto login) {
+
         Entry customerEntry = new Entry();
+        EmployerLoanProfile emprofile = null;
+        CustomerEmployerDetails customerEmployerDetails = null;
         LoginResponse responseEntry = new LoginResponse();
 
         customerEntry = account.AuthenticateCustomerAccount(login);
 
         if(customerEntry != null) {
+
+            //get company loan profile
+            emprofile = account.FetchEmployerLoanProfile(customerEntry.getEMPLOYER_PROFILE_ID());
+            customerEmployerDetails = account.FetchCustomerEmployerLoanProfile(customerEntry.getCUSTOMER_ENTRY_ID());
 
             Response response = new Response();
 
@@ -86,6 +181,8 @@ public class EntryController {
 
             responseEntry.setResponse(response);
             responseEntry.setCustomer(customerEntry);
+            responseEntry.setCustomerEmployerDetails(customerEmployerDetails);
+            responseEntry.setEmployerloanProfile(emprofile);
 
             return new ResponseEntity(responseEntry, HttpStatus.OK);
         }

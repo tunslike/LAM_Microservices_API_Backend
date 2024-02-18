@@ -20,6 +20,7 @@ public class EntryRowMapper implements RowMapper<Entry> {
         entry.setFULL_NAME(rs.getString("FULL_NAME"));
         entry.setPHONE_NUMBER(rs.getString("PHONE_NUMBER"));
         entry.setEMAIL_ADDRESS(rs.getString("EMAIL_ADDRESS"));
+        entry.setEMPLOYER_PROFILE_ID(rs.getString("EMPLOYER_PROFILE_ID"));
         entry.setDATE_CREATED(rs.getTimestamp("DATE_CREATED").toLocalDateTime());
         entry.setIS_LOGGED(rs.getInt("IS_LOGGED"));
         return entry;

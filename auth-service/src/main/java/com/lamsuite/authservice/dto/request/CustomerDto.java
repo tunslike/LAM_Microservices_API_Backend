@@ -21,4 +21,10 @@ public class CustomerDto {
 
     @NotEmpty(message = "The account type is required.")
     private String account_type;
+
+    @NotEmpty(message = "The pin Number is required.")
+    private String pinNumber;
+
+    @NotEmpty(message = "The employer profile ID is required.")
+    private String employer_profile_id;
 }
