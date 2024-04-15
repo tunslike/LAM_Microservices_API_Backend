@@ -7,6 +7,10 @@ import lombok.Data;
 
 @Data
 public class PersonalDataUpdateDto {
+
+    @NotBlank(message = "The customer id required.")
+    private String customer_id;
+
     // PERSONAL DETAILS
     @NotBlank(message = "The last name is required.")
     private String lastname;

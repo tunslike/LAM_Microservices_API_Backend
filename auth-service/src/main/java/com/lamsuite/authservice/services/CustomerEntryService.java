@@ -1,17 +1,13 @@
 package com.lamsuite.authservice.services;
 
 import com.lamsuite.authservice.dto.EntryResponse;
+import com.lamsuite.authservice.dto.KYCStatus;
 import com.lamsuite.authservice.dto.LoginResponse;
 import com.lamsuite.authservice.dto.request.*;
-import com.lamsuite.authservice.model.CustomerEmployerDetails;
-import com.lamsuite.authservice.model.EmployerLoanProfile;
-import com.lamsuite.authservice.model.EmployerProfile;
-import com.lamsuite.authservice.model.Entry;
+import com.lamsuite.authservice.model.*;
 import com.lamsuite.authservice.repository.CustomerEntry;
-import com.lamsuite.authservice.rowMappers.CustomerEmployerDetailsMapper;
-import com.lamsuite.authservice.rowMappers.EmployerLoanProfileRowMapper;
-import com.lamsuite.authservice.rowMappers.EmployerProfileMapper;
-import com.lamsuite.authservice.rowMappers.EntryRowMapper;
+import com.lamsuite.authservice.rowMappers.*;
+import com.lamsuite.authservice.rowMappers.Loan.CustomerLoanDetailsWrapper;
 import com.lamsuite.authservice.utilities.Utilities;
 import lombok.AllArgsConstructor;
 import org.mindrot.jbcrypt.BCrypt;
@@ -73,7 +69,14 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
             if(status == 1) {
                 //create password
                 createClientPINSecret(Customer_ID, customer.getPinNumber());
-                logger.info("New Customer Created Successfully");
+
+                // send notification
+                NotificationService notificationService = new NotificationService();
+
+                notificationService.SendAccountRegistrationNotification(customer.getEmailAddress(), customer.getPinNumber(),
+                        customer.getFull_name());
+
+                logger.info("[" +customer.getFull_name() + "] New Customer Created Successfully");
                 return true;
             }else{
                 return false;
@@ -120,6 +123,38 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
     }
     // end of service
 
+    // update customer pin number
+    public boolean ResetCustomerPIN(SignInDto account) {
+
+        JdbcTemplate dbCor = new JdbcTemplate(dataSource);
+
+        try {
+
+            //SQL Script
+            String sql = "UPDATE LAM_CUSTOMER_ACCESS SET CUSTOMER_ACCESS_CODE = ?, LAST_RESET_DATE = ?" +
+                         "WHERE CUSTOMER_ENTRY_ID = (SELECT CUSTOMER_ENTRY_ID FROM " +
+                         "LAM_CUSTOMER_ENTRY WHERE USERNAME = ?)";
+
+            String CUSTOMER_ACCESS_CODE = Utilities.hashPINSecret("123456");
+
+            //insert
+            int status = dbCor.update(sql,CUSTOMER_ACCESS_CODE, LocalDateTime.now(), account.getUsername());
+
+            if(status == 1) {
+                logger.info("PIN Password Created Successfully");
+                return true;
+            }else {
+                return false;
+            }
+
+        }catch(Exception e) {
+            logger.error(e.getMessage());
+        }
+
+        return false;
+    }
+    // end of service
+
     // service to return employer profile ids
     public List<EmployerProfile> FetchEmployerProfiles() {
         JdbcTemplate dbCor = new JdbcTemplate(dataSource);
@@ -136,6 +171,125 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
         }
 
         return null;
+    }
+
+    @Override
+    public LoanDetails fetchCustomerLoanDetails(String CustomerID) throws Exception {
+        JdbcTemplate dbCor = new JdbcTemplate(dataSource);
+
+        LoanDetails loanDetails = new LoanDetails();
+
+        try {
+
+            //SQL Script
+            String sql = "SELECT L.CUSTOMER_ID, L.LOAN_ID, L.LOAN_PURPOSE, L.LOAN_STATUS, " +
+                    "L.DATE_CREATED, L.LOAN_NUMBER, L.LOAN_AMOUNT, L.MONTHLY_REPAYMENT, " +
+                    "L.TOTAL_REPAYMENT, L.INTEREST_RATE, L.LOAN_TENOR, (SELECT COMPANY_NAME FROM LAM_COMPANY_PROFILE " +
+                    "WHERE PROFILE_ID = E.EMPLOYER_ID)EMPLOYER_NAME FROM LAM_CUSTOMER_LOAN_REQUEST L LEFT JOIN " +
+                    "LAM_CUSTOMER_ENTRY C ON L.CUSTOMER_ID = C.CUSTOMER_ENTRY_ID LEFT JOIN LAM_CUSTOMER_EMPLOYERS E ON " +
+                    "C.CUSTOMER_ENTRY_ID = E.CUSTOMER_ID WHERE L.CUSTOMER_ID = ?";
+
+            loanDetails  =  dbCor.queryForObject(sql, new Object[]{CustomerID}, new CustomerLoanDetailsWrapper());
+
+        }catch(DataAccessException e) {
+            logger.error(e.getMessage());
+        }
+
+        return loanDetails;
+    }
+
+    // service to check that customer exists
+    private boolean CheckCustomerDocuments(String CustomerID)  {
+
+        JdbcTemplate dbCor = new JdbcTemplate(dataSource);
+
+        try {
+
+            //SQL Script
+            String sql = "SELECT COUNT(*)COUNT FROM LAM_CUSTOMER_DOCUMENTS WHERE CUSTOMER_ID = ?";
+
+            Integer count =  dbCor.queryForObject(sql, new Object[] { CustomerID }, Integer.class);
+
+            if(count == 1) {
+                return true;
+            }
+
+        }catch(DataAccessException e) {
+            logger.error(e.getMessage());
+        }
+
+        return false;
+    }
+    // end of service
+
+    // service to check that customer exists
+    private boolean CheckCustomerEmployer(String CustomerID)  {
+
+        JdbcTemplate dbCor = new JdbcTemplate(dataSource);
+
+        try {
+
+            //SQL Script
+            String sql = "SELECT COUNT(*)COUNT FROM LAM_CUSTOMER_EMPLOYERS WHERE CUSTOMER_ID = ?";
+
+            Integer count =  dbCor.queryForObject(sql, new Object[] { CustomerID }, Integer.class);
+
+            if(count == 1) {
+                return true;
+            }
+
+        }catch(DataAccessException e) {
+            logger.error(e.getMessage());
+        }
+
+        return false;
+    }
+    // end of service
+
+    // service to check that customer exists
+    private boolean CheckCustomerNOK(String CustomerID)  {
+
+        JdbcTemplate dbCor = new JdbcTemplate(dataSource);
+
+        try {
+
+            //SQL Script
+            String sql = "SELECT COUNT(*)COUNT FROM LAM_NEXT_OF_KIN WHERE CUSTOMER_ID = ?";
+
+            Integer count =  dbCor.queryForObject(sql, new Object[] { CustomerID }, Integer.class);
+
+            if(count == 1) {
+                return true;
+            }
+
+        }catch(DataAccessException e) {
+            logger.error(e.getMessage());
+        }
+
+        return false;
+    }
+    // end of service
+
+    // service to check that customer exists
+    private boolean CheckCustomerBiodata(String CustomerID)  {
+        JdbcTemplate dbCor = new JdbcTemplate(dataSource);
+
+        try {
+
+            //SQL Script
+            String sql = "SELECT COUNT(*)COUNT FROM LAM_CUSTOMER WHERE CUSTOMER_ID = ?";
+
+            Integer count =  dbCor.queryForObject(sql,new Object[] { CustomerID }, Integer.class);
+
+            if(count == 1) {
+                return true;
+            }
+
+        }catch(DataAccessException e) {
+            logger.error(e.getMessage());
+        }
+
+        return false;
     }
     // end of service
 
@@ -176,7 +330,7 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
                         "(?,?,?,?,?,?,?,?)";
 
                 //insert
-                int status = dbCor.update(sql,employerRecord.getCustomerID(), employerRecord.getEmployerProfileID(),
+                int status = dbCor.update(sql,employerRecord.getCustomer_id(), employerRecord.getEmployerProfileID(),
                                         employerRecord.getSector(), employerRecord.getGrade_level(), employerRecord.getService_length(),
                                         employerRecord.getStaff_id_number(), employerRecord.getSalary_payment_date(),
                                         employerRecord.getAnnual_salary());
@@ -200,9 +354,8 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
     // service to upload customer document
     @Override
     public boolean UploadCustomerDocuments(MultipartFile file) throws Exception {
+
         JdbcTemplate dbCor = new JdbcTemplate(dataSource);
-
-
         String fileName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
 
         try {
@@ -264,7 +417,7 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
                     "(?,?,?,?,?,?,?,?,?,?,?,?)";
 
             //insert
-            int status = dbCor.update(sql,nokRecord.getCustomerID(), nokRecord.getNok_lastname(), nokRecord.getNok_firstname(), nokRecord.getNok_relationship(),
+            int status = dbCor.update(sql,nokRecord.getCustomer_id(), nokRecord.getNok_lastname(), nokRecord.getNok_firstname(), nokRecord.getNok_relationship(),
                                     nokRecord.getNok_gender(), nokRecord.getNok_phone(), nokRecord.getNok_email(),
                                     nokRecord.getNok_address(), nokRecord.getNok_areaLocality(), nokRecord.getNok_state(),
                                     LocalDateTime.now(), "SYSTEM");
@@ -303,13 +456,12 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
                                                         "DATE_CREATED, CREATED_BY, RECORD_SOURCE) VALUES " +
                                                         "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
-                String CUSTOMER_ID = UUID.randomUUID().toString();
                 String CUSTOMER_NO = String.valueOf(Utilities.generateCustomerNumber());
-                String Scheme_type = "";
-                String KYC_STATUS = "";
+                String Scheme_type = "Loan";
+                String KYC_STATUS = "Pending";
 
                 //insert
-                int status = dbCor.update(sql,CUSTOMER_ID, CUSTOMER_NO, Scheme_type, KYC_STATUS, record.getLastname(),
+                int status = dbCor.update(sql,record.getCustomer_id(), CUSTOMER_NO, Scheme_type, KYC_STATUS, record.getLastname(),
                         record.getFirstname(), record.getOther_name(), record.getDate_of_birth(), record.getGender(), record.getPlace_of_birth(),
                         record.getPhone_number(), record.getEmailAddress(), record.getState_of_origin(), record.getNationality(), record.getAddress(),
                         record.getArea_location(), record.getState(), LocalDateTime.now(),"SYSTEM", "MOBILE_APP");
@@ -318,7 +470,7 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
 
                     logger.info("Customer record updated Successfully");
 
-                    return CUSTOMER_ID;
+                    return record.getCustomer_id();
 
                 }else return null;
 
@@ -377,12 +529,22 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
                 //validate passcode
                 if(ValidateCustomerEntryCode(customerEntry.getCUSTOMER_ENTRY_ID(), account.getPinNumber())) {
 
-                    boolean checkStatus = CheckCustomerExists(customerEntry.getEMAIL_ADDRESS(), customerEntry.getPHONE_NUMBER());
+                    boolean checkStatus = CheckCustomerBiodata(customerEntry.getCUSTOMER_ENTRY_ID());
+                    boolean checkEmployer = CheckCustomerEmployer(customerEntry.getCUSTOMER_ENTRY_ID());
+                    boolean checkNOK = CheckCustomerNOK(customerEntry.getCUSTOMER_ENTRY_ID());
+                    boolean checkDocument = CheckCustomerDocuments(customerEntry.getCUSTOMER_ENTRY_ID());
 
                     customerEntry.setIS_RECORD_FOUND(checkStatus);
+                    customerEntry.setIS_NOK_FOUND(checkNOK);
+                    customerEntry.setIS_DOCUMENT_FOUND(checkDocument);
+                    customerEntry.setIS_EMPLOYER_FOUND(checkEmployer);
+
+                    return customerEntry;
+                }else{
+                    return null;
                 }
 
-                return customerEntry;
+
             }
 
         }catch(DataAccessException e) {
@@ -390,18 +552,19 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
         }
         return null;
     }
-    public EmployerLoanProfile FetchEmployerLoanProfile(String EmployerProfileID) {
+    public EmployerLoanProfile FetchEmployerLoanProfile(String CustomerID) {
         JdbcTemplate dbCor = new JdbcTemplate(dataSource);
         EmployerLoanProfile empProfile = null;
         try {
 
             //SQL Script
-            String sql = "SELECT COMPANY_PROFILE_ID, NO_OF_STAFF, LOAN_LIMIT_PERCENT, " +
-                         "LOAN_INTEREST_RATE, LOAN_TENOR, REPAYMENT_STRUCTURE, DATE_CREATED FROM LAM_COMPANY_LOAN_SETUP " +
-                         "WHERE COMPANY_PROFILE_ID = ?";
+            String sql = "SELECT S.COMPANY_PROFILE_ID, S.NO_OF_STAFF, S.LOAN_LIMIT_PERCENT, " +
+                         "S.LOAN_INTEREST_RATE, S.LOAN_TENOR, S.REPAYMENT_STRUCTURE, S.DATE_CREATED " +
+                         "FROM LAM_COMPANY_LOAN_SETUP S LEFT JOIN LAM_CUSTOMER_EMPLOYERS E ON S.COMPANY_PROFILE_ID = " +
+                         "E.EMPLOYER_ID LEFT JOIN LAM_CUSTOMER C ON E.CUSTOMER_ID = C.CUSTOMER_ID WHERE C.CUSTOMER_ID = ?";
 
             //spool;
-            empProfile = dbCor.queryForObject(sql, new Object[]{EmployerProfileID}, new EmployerLoanProfileRowMapper());
+            empProfile = dbCor.queryForObject(sql, new Object[]{CustomerID}, new EmployerLoanProfileRowMapper());
 
             return empProfile;
 

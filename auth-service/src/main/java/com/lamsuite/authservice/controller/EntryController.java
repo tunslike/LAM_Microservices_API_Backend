@@ -1,14 +1,13 @@
 package com.lamsuite.authservice.controller;
 
 import com.lamsuite.authservice.dto.EntryResponse;
+import com.lamsuite.authservice.dto.KYCStatus;
 import com.lamsuite.authservice.dto.LoginResponse;
 import com.lamsuite.authservice.dto.Response;
 import com.lamsuite.authservice.dto.request.*;
-import com.lamsuite.authservice.model.CustomerEmployerDetails;
-import com.lamsuite.authservice.model.EmployerLoanProfile;
-import com.lamsuite.authservice.model.EmployerProfile;
-import com.lamsuite.authservice.model.Entry;
+import com.lamsuite.authservice.model.*;
 import com.lamsuite.authservice.services.CustomerEntryService;
+import com.lamsuite.authservice.services.LoanManagementService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -157,22 +156,47 @@ public class EntryController {
     }
     // end of function
 
+    //service to reset pin
+    @PostMapping("/resetPin")
+    public ResponseEntity resetCustomerPIN(@Valid @RequestBody SignInDto login) {
+
+        if(account.ResetCustomerPIN(login)) {
+
+            Response response = new Response();
+            response.setResponseCode(200);
+            response.setResponseMessage("Customer pin has been reset successfully");
+
+            return new ResponseEntity(response, HttpStatus.OK);
+
+        }else {
+            Response response = new Response();
+            response.setResponseCode(404);
+            response.setResponseMessage("Unable to process your request");
+
+            return new ResponseEntity(response, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    //end of service
+
     // service to login
     @PostMapping("/login")
-    public ResponseEntity authenticateCustomer(@Valid @RequestBody SignInDto login) {
+    public ResponseEntity authenticateCustomer(@Valid @RequestBody SignInDto login) throws Exception {
 
         Entry customerEntry = new Entry();
         EmployerLoanProfile emprofile = null;
         CustomerEmployerDetails customerEmployerDetails = null;
         LoginResponse responseEntry = new LoginResponse();
+        LoanDetails loanDetails = new LoanDetails();
 
         customerEntry = account.AuthenticateCustomerAccount(login);
 
         if(customerEntry != null) {
 
             //get company loan profile
-            emprofile = account.FetchEmployerLoanProfile(customerEntry.getEMPLOYER_PROFILE_ID());
+            emprofile = account.FetchEmployerLoanProfile(customerEntry.getCUSTOMER_ENTRY_ID());
             customerEmployerDetails = account.FetchCustomerEmployerLoanProfile(customerEntry.getCUSTOMER_ENTRY_ID());
+            loanDetails = account.fetchCustomerLoanDetails(customerEntry.getCUSTOMER_ENTRY_ID());
 
             Response response = new Response();
 
@@ -181,6 +205,7 @@ public class EntryController {
 
             responseEntry.setResponse(response);
             responseEntry.setCustomer(customerEntry);
+            responseEntry.setActiveLoan(loanDetails);
             responseEntry.setCustomerEmployerDetails(customerEmployerDetails);
             responseEntry.setEmployerloanProfile(emprofile);
 

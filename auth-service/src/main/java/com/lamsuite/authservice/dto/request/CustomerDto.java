@@ -25,6 +25,5 @@ public class CustomerDto {
     @NotEmpty(message = "The pin Number is required.")
     private String pinNumber;
 
-    @NotEmpty(message = "The employer profile ID is required.")
     private String employer_profile_id;
 }

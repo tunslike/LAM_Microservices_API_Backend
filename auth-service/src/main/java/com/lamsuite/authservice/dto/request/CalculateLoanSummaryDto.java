@@ -3,8 +3,9 @@ package com.lamsuite.authservice.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
+
 @Data
-public class CustomerLoanRequestDto {
+public class CalculateLoanSummaryDto {
     @NotBlank(message = "Customer ID is required.")
     private String customerID;
 
@@ -14,9 +15,7 @@ public class CustomerLoanRequestDto {
     @NotBlank(message = "Loan tenor is required.")
     private String loanTenor;
 
-    @NotBlank(message = "Loan purpose is required.")
-    private String loanPurpose;
+    @NotBlank(message = "Loan interest is required.")
+    private String loanInterest;
 
-    @NotBlank(message = "Account ID is required.")
-    private String accountID;
 }

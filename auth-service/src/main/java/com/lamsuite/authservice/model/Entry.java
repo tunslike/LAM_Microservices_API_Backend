@@ -20,7 +20,8 @@ public class Entry {
     private LocalDateTime DATE_CREATED;
     private Integer IS_LOGGED;
     private Boolean IS_RECORD_FOUND;
+    private Boolean IS_EMPLOYER_FOUND;
+    private Boolean IS_NOK_FOUND;
+    private Boolean IS_DOCUMENT_FOUND;
     private EmployerLoanProfile employerLoanProfile;
-
-
 }

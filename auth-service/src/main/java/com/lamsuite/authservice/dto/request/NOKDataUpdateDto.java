@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 public class NOKDataUpdateDto {
     @NotBlank(message = "Customer ID is required.")
-    private String customerID;
+    private String customer_id;
 
     @NotBlank(message = "NOK lastname is required.")
     private String nok_lastname;

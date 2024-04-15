@@ -9,7 +9,7 @@ import lombok.Data;
 public class EmployerDataUpdateDto {
 
     @NotBlank(message = "Customer ID is required.")
-    private String customerID;
+    private String customer_id;
 
     @NotBlank(message = "Employer profile ID is required.")
     private String employerProfileID;
