@@ -6,14 +6,22 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.WebRequest;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @ControllerAdvice
-public class ValidationExceptionHandler {
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(DocumentUploadException.class)
+    public ResponseEntity<?> documentUploadExceptionHandling(Exception exception, WebRequest request) {
+        return new ResponseEntity<>(
+                new DocumentUploadExceptionDetails(
+                new Date(),
+                exception.getMessage(),
+                request.getDescription(false)), HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> notValid(MethodArgumentNotValidException ex, HttpServletRequest request) {
         List<String> errors = new ArrayList<>();
