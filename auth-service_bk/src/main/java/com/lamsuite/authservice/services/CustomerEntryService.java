@@ -92,8 +92,7 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
         try {
 
             //SQL Script
-            String sql = "SELECT COUNT(*) FROM LAM_CUSTOMER_ENTRY WHERE FULL_NAME = ? " +
-                         "OR EMAIL_ADDRESS = ? OR PHONE_NUMBER = ?";
+            String sql = "SELECT COUNT(*) FROM LAM_CUSTOMER_ENTRY WHERE EMAIL_ADDRESS = ? OR PHONE_NUMBER = ?";
 
             //insert
             Integer count =  dbCor.queryForObject(sql, new Object[] { customer.getFull_name(), customer.getEmailAddress(), customer.getPhoneNumber() }, Integer.class);
@@ -210,6 +209,15 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
         try {
 
             //SQL Script
+            String sql_check = "SELECT COUNT(*)COUNT FROM LAM_CUSTOMER_ENTRY WHERE USERNAME = ?";
+
+            Integer count =  dbCor.queryForObject(sql_check, new Object[] { account.getUsername() }, Integer.class);
+
+            if(count == 0) {
+                return false;
+            }
+
+            //SQL Script
             String sql = "UPDATE LAM_CUSTOMER_ACCESS SET CUSTOMER_ACCESS_CODE = ?, LAST_RESET_DATE = ?, RESET_STATUS = 1 " +
                          "WHERE CUSTOMER_ENTRY_ID = (SELECT CUSTOMER_ENTRY_ID FROM " +
                          "LAM_CUSTOMER_ENTRY WHERE USERNAME = ?)";
@@ -236,6 +244,7 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
                 notificationService.SendPasswordResetNotification(client.getFULL_NAME(), client.getEMAIL_ADDRESS(), String.valueOf(newPin));
                 logger.info("PIN Password Created Successfully");
                 return true;
+
             }else {
                 return false;
             }
