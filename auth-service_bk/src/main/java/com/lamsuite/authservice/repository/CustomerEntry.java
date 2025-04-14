@@ -25,7 +25,7 @@ public interface CustomerEntry<T> {
     List<Transaction> FetchCustomerTransactions(String CustomerID);
 
     // reset customer PIN
-    boolean ResetCustomerPIN(SignInDto account);
+    int ResetCustomerPIN(SignInDto account);
 
     // change customer PIN
     boolean ChangePINNumber(SignInDto account);

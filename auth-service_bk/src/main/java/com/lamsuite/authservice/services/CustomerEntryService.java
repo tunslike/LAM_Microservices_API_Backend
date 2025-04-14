@@ -95,7 +95,7 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
             String sql = "SELECT COUNT(*) FROM LAM_CUSTOMER_ENTRY WHERE EMAIL_ADDRESS = ? OR PHONE_NUMBER = ?";
 
             //insert
-            Integer count =  dbCor.queryForObject(sql, new Object[] { customer.getFull_name(), customer.getEmailAddress(), customer.getPhoneNumber() }, Integer.class);
+            Integer count =  dbCor.queryForObject(sql, new Object[] {customer.getEmailAddress(), customer.getPhoneNumber() }, Integer.class);
 
             if(count == 0) {
                 return true;
@@ -202,7 +202,7 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
     // end of service
 
     // update customer pin number
-    public boolean ResetCustomerPIN(SignInDto account) {
+    public int ResetCustomerPIN(SignInDto account) {
 
         JdbcTemplate dbCor = new JdbcTemplate(dataSource);
 
@@ -214,7 +214,7 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
             Integer count =  dbCor.queryForObject(sql_check, new Object[] { account.getUsername() }, Integer.class);
 
             if(count == 0) {
-                return false;
+                return 2;
             }
 
             //SQL Script
@@ -243,17 +243,17 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
 
                 notificationService.SendPasswordResetNotification(client.getFULL_NAME(), client.getEMAIL_ADDRESS(), String.valueOf(newPin));
                 logger.info("PIN Password Created Successfully");
-                return true;
+                return 1;
 
             }else {
-                return false;
+                return 0;
             }
 
         }catch(Exception e) {
             logger.error(e.getMessage());
         }
 
-        return false;
+        return 0;
     }
 
     @Override

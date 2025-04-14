@@ -265,9 +265,11 @@ public class EntryController {
 
     //service to reset pin
     @PostMapping("/resetPin")
-    public ResponseEntity resetCustomerPIN(@Valid @RequestBody SignInDto login) {
+    public ResponseEntity<Response> resetCustomerPIN(@Valid @RequestBody SignInDto login) {
 
-        if(account.ResetCustomerPIN(login)) {
+        int response_status = account.ResetCustomerPIN(login);
+
+        if(response_status == 1) {
 
             Response response = new Response();
             response.setResponseCode(200);
@@ -275,10 +277,19 @@ public class EntryController {
 
             return new ResponseEntity(response, HttpStatus.OK);
 
-        }else {
+        }else if(response_status == 2) {
+
+            Response response = new Response();
+            response.setResponseCode(303);
+            response.setResponseMessage("Account does not exists");
+
+            return new ResponseEntity(response, HttpStatus.OK);
+
+        }
+        else {
             Response response = new Response();
             response.setResponseCode(404);
-            response.setResponseMessage("Unable to process your request");
+            response.setResponseMessage("Unable to process your request, please retry");
 
             return new ResponseEntity(response, HttpStatus.BAD_REQUEST);
         }
