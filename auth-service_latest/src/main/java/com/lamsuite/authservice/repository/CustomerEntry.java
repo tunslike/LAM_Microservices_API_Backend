@@ -43,7 +43,9 @@ public interface CustomerEntry<T> {
 
     boolean UpdateNOKData(NOKDataUpdateDto nokRecord);
 
+    AppVersion validateAppVersion(String platform);
 
+    AppVersion updateAppVersion(AppVersionDetailsDto request);
 
     boolean UploadCustomerDocuments(MultipartFile file, String doctype, String CustomerID) throws Exception;
 

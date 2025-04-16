@@ -317,6 +317,28 @@ public class EntryController {
         }
     }//end of service
 
+    // service to fetch app version
+    @PostMapping("/updateAppVersion")
+    public ResponseEntity<AppVersion> updateAppVersion(@Valid @RequestBody AppVersionDetailsDto request) throws Exception {
+
+        AppVersion appVersion = account.updateAppVersion(request);
+
+        return new ResponseEntity(appVersion, HttpStatus.OK);
+    }
+
+
+    //service to fetch profile
+    @GetMapping("/checkAppVersion")
+    public ResponseEntity fetchCheckAppVersion(@RequestParam String platform) {
+
+        AppVersion appVersion = new AppVersion();
+
+        appVersion = account.validateAppVersion(platform);
+
+        return new ResponseEntity(appVersion, HttpStatus.OK);
+    }
+    //end of service
+
     // service to login
     @PostMapping("/login")
     public ResponseEntity authenticateCustomer(@Valid @RequestBody SignInDto login) throws Exception {

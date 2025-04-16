@@ -9,7 +9,6 @@ import java.sql.SQLException;
 
 public class CustomerEmployerDetailsMapper implements RowMapper<CustomerEmployerDetails> {
 
-
     @Override
     public CustomerEmployerDetails mapRow(ResultSet rs, int rowNum) throws SQLException {
 

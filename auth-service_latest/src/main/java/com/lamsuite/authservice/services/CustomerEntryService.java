@@ -688,6 +688,87 @@ public class CustomerEntryService implements CustomerEntry<Entry> {
 
         return false;
     }
+
+    @Override
+    public AppVersion validateAppVersion(String platform) {
+
+        JdbcTemplate dbCor = new JdbcTemplate(dataSource);
+
+        try {
+
+            //fetch data
+            String sql_fetch = "SELECT PLATFORM_ID, PLATFORM, LATEST_VERSION, " +
+                    "MINIMUM_VERSION, BUILD_NO, DATE_CREATED, DATE_UPDATED, " +
+                    "STATUS FROM LAM_APP_VERSION WHERE PLATFORM = ?";
+
+            AppVersion appVersion = new AppVersion();
+
+            appVersion  =  dbCor.queryForObject(sql_fetch, new Object[]{platform}, new AppVersionMapper());
+
+            return appVersion;
+
+        }catch(DataAccessException e) {
+            logger.error(e.getMessage());
+        }
+
+        return null;
+    }
+
+    @Override
+    public AppVersion updateAppVersion(AppVersionDetailsDto request) {
+
+        JdbcTemplate dbCor = new JdbcTemplate(dataSource);
+
+        try {
+
+            //SQL Script
+            String sql_check = "SELECT COUNT(*)COUNT FROM LAM_APP_VERSION WHERE " +
+                    "PLATFORM = ?";
+
+            Integer count =  dbCor.queryForObject(sql_check, Integer.class, request.getPlatform());
+
+
+            if(count == 0) {
+
+                //SQL Script
+                String sql = "INSERT INTO LAM_APP_VERSION (PLATFORM_ID, PLATFORM, LATEST_VERSION, MINIMUM_VERSION, " +
+                        "BUILD_NO, DATE_CREATED) VALUES (?,?,?,?,?,?)";
+
+                String appId = UUID.randomUUID().toString();
+
+                //insert
+                int status = dbCor.update(sql, appId, request.getPlatform(), request.getLatestVersion(), request.getMinimumVersion(), request.getBuildNo(),
+                        LocalDateTime.now());
+
+            }else {
+
+                //SQL Script
+                String sql = "UPDATE LAM_APP_VERSION SET LATEST_VERSION = ?, MINIMUM_VERSION = ?, " +
+                        "BUILD_NO = ?, DATE_UPDATED = ? WHERE PLATFORM = ?";
+
+                //insert
+                int status = dbCor.update(sql, request.getLatestVersion(), request.getMinimumVersion(), request.getBuildNo(),
+                        LocalDateTime.now(), request.getPlatform());
+            }
+
+            //fetch data
+            String sql_fetch = "SELECT PLATFORM_ID, PLATFORM, LATEST_VERSION, " +
+                    "MINIMUM_VERSION, BUILD_NO, DATE_CREATED, DATE_UPDATED, " +
+                    "STATUS FROM LAM_APP_VERSION WHERE PLATFORM = ?";
+
+            AppVersion appVersion = new AppVersion();
+
+            appVersion  =  dbCor.queryForObject(sql_fetch, new Object[]{request.getPlatform()}, new AppVersionMapper());
+
+            return appVersion;
+
+
+        }catch(DataAccessException e) {
+            logger.error(e.getMessage());
+        }
+
+        return null;
+    }
     // end of service
 
     // service to update client record
